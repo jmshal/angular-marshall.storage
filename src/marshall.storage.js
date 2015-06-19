@@ -47,7 +47,7 @@
          * Returns the value of a local storage item (by key).
          *
          * @param {String} key
-         * @returns {*|undefined}
+         * @returns {String|null}
          */
         proto.get = function (key) {
             return this.storage.getItem(this.prefix + key);
@@ -94,7 +94,8 @@
          * This function automatically parses/stringifies the target object.
          *
          * @param {String} key
-         * @param {Object} [value]
+         * @param {Object|Array} [value]
+         * @returns {Object|Array|undefined}
          */
         proto.json = function (key, value) {
             var data;
@@ -294,6 +295,13 @@
                     // Trigger an item update for this key (pass null as current)
                     priv.triggerUpdate(key, null, before[key]);
                 });
+
+                // Again, with the clear function, we need to force angular to notice
+                // the changes to local storage, so if there isn't a current digest,
+                // call $apply.
+                if ( ! $rootScope.$$phase) {
+                    $rootScope.$apply();
+                }
             };
         })();
 
