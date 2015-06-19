@@ -11,7 +11,8 @@
     function StorageServiceProvider ($rootScope) {
         var proto = StorageService.prototype,
             priv = {},
-            callbacks = [];
+            callbacks = [],
+            data = {};
 
         /**
          * Wraps a function in an $apply, which fixes any issues with events and angular's
@@ -193,6 +194,15 @@
                 key = event.key.substring(this.prefix.length);
                 callback(key, event.newValue, event.oldValue);
             }
+
+            // If the `storage` event was emitted due to another tab clearing the
+            // local storage, invoke `priv.triggerBefore` which will invoke the
+            // `priv.triggerUpdate` function for each item we already knew about.
+            else if (event.key === null) {
+                priv.triggerBefore(data);
+            }
+
+            priv.updateData();
         };
 
         /**
@@ -247,6 +257,32 @@
             });
         };
 
+        /**
+         * Updates the `data` object, containing all the current local storage data.
+         *
+         * This object is used for when another tab clears the local storage, and we're
+         * notified of the event. However the event only passes us the knowledge of such a
+         * thing, not the data that got removed. That is why we always need to keep track
+         * of the data.
+         */
+        priv.updateData = function () {
+            data = JSON.parse(JSON.stringify(window.localStorage));
+        };
+
+        /**
+         * Trigger an update for each item in the `before` argument. This function is
+         * invoked whenever an item has been removed, but we still have a reference to it's
+         * previous value (within `before`).
+         *
+         * @param {Object} before
+         */
+        priv.triggerBefore = function (before) {
+            angular.forEach(Object.keys(before), function (key) {
+                // Trigger an item update for this key (pass null as current)
+                priv.triggerUpdate(key, null, before[key]);
+            });
+        };
+
         angular.forEach(['setItem', 'removeItem'], function (fn) {
             var method = window.Storage.prototype[fn];
 
@@ -273,6 +309,8 @@
                         $rootScope.$apply();
                     }
                 }
+
+                priv.updateData();
             };
         });
 
@@ -291,10 +329,8 @@
                 // Clear the local storage (wiping all data)
                 method.call(this);
 
-                angular.forEach(Object.keys(before), function (key) {
-                    // Trigger an item update for this key (pass null as current)
-                    priv.triggerUpdate(key, null, before[key]);
-                });
+                // Trigger an update event for each of the items in `before`
+                priv.triggerBefore(before);
 
                 // Again, with the clear function, we need to force angular to notice
                 // the changes to local storage, so if there isn't a current digest,
@@ -302,8 +338,12 @@
                 if ( ! $rootScope.$$phase) {
                     $rootScope.$apply();
                 }
+
+                priv.updateData();
             };
         })();
+
+        priv.updateData();
 
         /**
          * Creates a new StorageService, with an optional prefix.
