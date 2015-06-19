@@ -240,8 +240,8 @@
                 try {
                     callback(event);
                 } catch (err) {
-                    if (window.console) {
-                        console.error(err);
+                    if (window.console && window.console.error) {
+                        window.console.error(err);
                     }
                 }
             });
