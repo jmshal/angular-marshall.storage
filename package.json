@@ -1,0 +1,17 @@
+{
+  "name": "angular-marshall.storage",
+  "version": "0.1.0",
+  "description": "A simple localStorage service for angular.",
+  "keywords": [
+    "localStorage",
+    "angular"
+  ],
+  "homepage": "https://github.com/jacobmarshall/angular-marshall.storage",
+  "license": "MIT",
+  "author": "Jacob Marshall <hello@jacobmarshall.co>",
+  "main": "src/marshall.storage.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jacobmarshall/angular-marshall.storage.git"
+  }
+}
