@@ -2,7 +2,39 @@
 
 This service provides a simple a eloquent interface to the `localStorage` API.
 
-## StorageService([String:prefix]) StorageService
+## Examples
+
+```js
+angular
+    .module('example', ['marshall.storage'])
+    .run(function (storageService) {
+        var storage = storageService('example.');
+
+        storage.set('foobar', 'Hello World!');
+
+        console.log(storage.get('foobar')); // 'Hello World!'
+    });
+```
+
+```js
+angular
+    .module('example', ['marshall.storage'])
+    .run(function (storageService) {
+        var storage = storageService('example.');
+
+        var watcher = storage.watch('foobar', function (key, value) {
+            console.log('%s => %s', key, value); // 'foobar => Hello World!'
+        });
+
+        storage.set('foobar', 'Hello World!');
+
+        console.log(storage.keys()); // ['foobar']
+    });
+```
+
+## API
+
+### StorageService([String:prefix]) StorageService
 
 Creates a new StorageService instance, with an optional prefix.
 
