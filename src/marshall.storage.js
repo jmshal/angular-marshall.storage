@@ -1,5 +1,9 @@
 /**
+ * angular-marshall.storage
  *
+ * @license MIT (http://opensource.org/licenses/MIT)
+ * @author Jacob Marshall <hello@jacobmarshall.co>
+ * @version v0.1.0
  */
 (function (angular) {
     'use strict';
