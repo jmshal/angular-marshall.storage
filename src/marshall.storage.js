@@ -10,6 +10,12 @@
 
     function StorageServiceProvider ($rootScope) {
         var proto = StorageService.prototype,
+            storage =
+                (function () {
+                    try {
+                        return window.localStorage;
+                    } catch (err) {}
+                })(),
             priv = {},
             callbacks = [],
             data = {};
@@ -41,7 +47,6 @@
          */
         function StorageService (prefix) {
             this.prefix = angular.isDefined(prefix) ? prefix : '';
-            this.storage = window.localStorage;
         }
 
         /**
@@ -51,7 +56,7 @@
          * @returns {String|null}
          */
         proto.get = function (key) {
-            return this.storage.getItem(this.prefix + key);
+            return priv.safeStorage.call(this, 'getItem', this.prefix + key);
         };
 
         /**
@@ -61,7 +66,7 @@
          * @param {String} value
          */
         proto.set = function (key, value) {
-            this.storage.setItem(this.prefix + key, value);
+            priv.safeStorage.call(this, 'setItem', this.prefix + key, value);
         };
 
         /**
@@ -70,7 +75,7 @@
          * @param {String} key
          */
         proto.has = function (key) {
-            return this.storage.hasOwnProperty(this.prefix + key);
+            return this.keys().indexOf(this.prefix + key) !== -1;
         };
 
         /**
@@ -79,7 +84,7 @@
          * @param {String} key
          */
         proto.remove = function (key) {
-            this.storage.removeItem(this.prefix + key);
+            priv.safeStorage.call(this, 'removeItem', this.prefix + key);
         };
 
         /**
@@ -102,7 +107,9 @@
             var data;
 
             if (angular.isDefined(value)) {
-                this.set(key, JSON.stringify(value));
+                try {
+                    this.set(key, JSON.stringify(value));
+                } catch (err) {}
             } else if (this.has(key)) {
                 try {
                     data = JSON.parse(this.get(key));
@@ -158,13 +165,20 @@
          * @returns {Array}
          */
         proto.keys = function () {
-            return Object.keys(this.storage)
-                .filter(function (key) {
-                    return key.indexOf(this.prefix) === 0;
-                }, this)
-                .map(function (key) {
-                    return key.substring(this.prefix.length);
-                }, this);
+            var keys = [];
+
+            if (storage) {
+                for (var index = 0; index < storage.length; index++) {
+                    var key = priv.safeStorage.call(this, 'key', index);
+
+                    if (key.indexOf(this.prefix) === 0) {
+                        key = key.substring(this.prefix.length);
+                        keys.push(key);
+                    }
+                }
+            }
+
+            return keys;
         };
 
         /**
@@ -266,7 +280,9 @@
          * of the data.
          */
         priv.updateData = function () {
-            data = JSON.parse(JSON.stringify(window.localStorage));
+            if (storage) {
+                data = JSON.parse(JSON.stringify(storage));
+            }
         };
 
         /**
@@ -282,66 +298,89 @@
                 priv.triggerUpdate(key, null, before[key]);
             });
         };
+        
+        /**
+         * Invokes a method on the storage object.
+         *
+         * @param {String} method
+         * @param {*} [args]
+         */
+        priv.safeStorage = function (method) {
+            if (storage) {
+                var args = [].slice.call(arguments, 1);
+                
+                try {
+                    // Invoke the storage method (using rest arguments)
+                    return storage[method].apply(storage, args);
+                } catch (err) {}
+            }
+        };
 
-        angular.forEach(['setItem', 'removeItem'], function (fn) {
-            var method = window.Storage.prototype[fn];
+        if (storage) {
+            angular.forEach(['setItem', 'removeItem'], function (fn) {
+                try {
+                    var method = window.Storage.prototype[fn];
 
-            /**
-             * Hook into the `setItem` and `removeItem` methods on the Storage class in
-             * order to notify any watchers of updates done on the same page (maybe
-             * even through means that aren't via angular.
-             */
-            window.Storage.prototype[fn] = function (key) {
-                var old = this.getItem(key),
-                    current;
+                    /**
+                     * Hook into the `setItem` and `removeItem` methods on the Storage class in
+                     * order to notify any watchers of updates done on the same page (maybe
+                     * even through means that aren't via angular.
+                     */
+                    window.Storage.prototype[fn] = function (key) {
+                        var old = this.getItem(key),
+                            current;
 
-                method.apply(this, arguments);
-                current = this.getItem(key);
+                        method.apply(this, arguments);
+                        current = this.getItem(key);
 
-                if (current !== old) {
-                    // Trigger an update if the current item has changed
-                    priv.triggerUpdate(key, current, old);
+                        if (current !== old) {
+                            // Trigger an update if the current item has changed
+                            priv.triggerUpdate(key, current, old);
 
-                    // As we don't know where this function was invoked from, we need
-                    // to lazy check whether an angular `$$phase` is set, if not, we need
-                    // to trigger a $digest to make angular see any changes.
-                    if ( ! $rootScope.$$phase) {
-                        $rootScope.$apply();
-                    }
-                }
+                            // As we don't know where this function was invoked from, we need
+                            // to lazy check whether an angular `$$phase` is set, if not, we need
+                            // to trigger a $digest to make angular see any changes.
+                            if ( ! $rootScope.$$phase) {
+                                $rootScope.$apply();
+                            }
+                        }
 
-                priv.updateData();
-            };
-        });
+                        priv.updateData();
+                    };
+                } catch (err) {}
+            });
 
-        (function () {
-            var method = window.Storage.prototype.clear;
+            (function () {
+                try {
+                    var method = window.Storage.prototype.clear;
 
-            /**
-             * Clears out the storage object, but makes a copy first, so it can notify
-             * any watchers of the changes. Calls `triggerUpdate` several times with each
-             * one of the old items.
-             */
-            window.Storage.prototype.clear = function () {
-                // Make a copy of what the items were before the clear
-                var before = JSON.parse(JSON.stringify(this));
+                    /**
+                     * Clears out the storage object, but makes a copy first, so it can notify
+                     * any watchers of the changes. Calls `triggerUpdate` several times with each
+                     * one of the old items.
+                     */
+                    window.Storage.prototype.clear = function () {
+                        // Make a copy of what the items were before the clear
+                        var before = JSON.parse(JSON.stringify(this));
 
-                // Clear the local storage (wiping all data)
-                method.call(this);
+                        // Clear the local storage (wiping all data)
+                        method.call(this);
 
-                // Trigger an update event for each of the items in `before`
-                priv.triggerBefore(before);
+                        // Trigger an update event for each of the items in `before`
+                        priv.triggerBefore(before);
 
-                // Again, with the clear function, we need to force angular to notice
-                // the changes to local storage, so if there isn't a current digest,
-                // call $apply.
-                if ( ! $rootScope.$$phase) {
-                    $rootScope.$apply();
-                }
+                        // Again, with the clear function, we need to force angular to notice
+                        // the changes to local storage, so if there isn't a current digest,
+                        // call $apply.
+                        if ( ! $rootScope.$$phase) {
+                            $rootScope.$apply();
+                        }
 
-                priv.updateData();
-            };
-        })();
+                        priv.updateData();
+                    };
+                } catch (err) {}
+            })();
+        }
 
         priv.updateData();
 
