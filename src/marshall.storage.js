@@ -1,4 +1,4 @@
-/**
+/*!
  * angular-marshall.storage
  *
  * @license MIT (http://opensource.org/licenses/MIT)
@@ -302,7 +302,7 @@
                 priv.triggerUpdate(key, null, before[key]);
             });
         };
-        
+
         /**
          * Invokes a method on the storage object.
          *
@@ -312,7 +312,7 @@
         priv.safeStorage = function (method) {
             if (storage) {
                 var args = [].slice.call(arguments, 1);
-                
+
                 try {
                     // Invoke the storage method (using rest arguments)
                     return storage[method].apply(storage, args);
