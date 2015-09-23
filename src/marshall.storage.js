@@ -3,7 +3,7 @@
  *
  * @license MIT (http://opensource.org/licenses/MIT)
  * @author Jacob Marshall <hello@jacobmarshall.co>
- * @version v0.1.1
+ * @version v0.1.3
  */
 (function (angular) {
     'use strict';
