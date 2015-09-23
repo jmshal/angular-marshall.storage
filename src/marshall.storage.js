@@ -79,7 +79,7 @@
          * @param {String} key
          */
         proto.has = function (key) {
-            return this.keys().indexOf(this.prefix + key) !== -1;
+            return this.keys().indexOf(key) !== -1;
         };
 
         /**
