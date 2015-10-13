@@ -29,7 +29,7 @@ angular
         console.log(storage.get('foobar', Number)); // 123 (Number)
 
         // JSON
-        storage.set('foobar', { one: 'two' });
+        storage.set('foobar', JSON.stringify({ one: 'two' }));
 
         console.log(storage.get('foobar')); // '{"one":"two"}' (String)
         console.log(storage.get('foobar', JSON.parse)); // { one: 'two' } (Object)
