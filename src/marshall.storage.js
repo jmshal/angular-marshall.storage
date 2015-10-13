@@ -57,10 +57,15 @@
          * Returns the value of a local storage item (by key).
          *
          * @param {String} key
+         * @param {Function} [parser]
          * @returns {String|null}
          */
-        proto.get = function (key) {
-            return priv.safeStorage.call(this, 'getItem', this.prefix + key);
+        proto.get = function (key, parser) {
+            if (typeof parser !== 'function') {
+                parser = function (value) { return value; };
+            }
+
+            return parser(priv.safeStorage.call(this, 'getItem', this.prefix + key));
         };
 
         /**

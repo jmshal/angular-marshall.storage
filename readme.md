@@ -19,6 +19,19 @@ angular
 ```js
 angular
     .module('example', ['marshall.storage'])
+    .run(function () {
+        var storage = storageService('example.');
+
+        storage.set('foobar', 123);
+
+        console.log(storage.get('foobar')); // '123' (String)
+        console.log(storage.get('foobar', Number)); // 123 (Number)
+    });
+```
+
+```js
+angular
+    .module('example', ['marshall.storage'])
     .run(function (storageService) {
         var storage = storageService('example.');
 
