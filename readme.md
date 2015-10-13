@@ -60,7 +60,7 @@ Creates a new StorageService instance, with an optional prefix.
 
 The prefix is used to isolate local storage items to a specific key. All methods on the StorageService look at this prefix. For example; with a StorageService of ‘foobar.’, the `StorageService#clear` method will only remove all items that start with ‘foobar.’.
 
-### StorageService#get(String:key) String/null
+### StorageService#get(String:key [, Function:parser]) *
 
 Returns the string value of an item within local storage.
 
