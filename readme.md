@@ -22,10 +22,17 @@ angular
     .run(function () {
         var storage = storageService('example.');
 
+        // Number
         storage.set('foobar', 123);
 
         console.log(storage.get('foobar')); // '123' (String)
         console.log(storage.get('foobar', Number)); // 123 (Number)
+
+        // JSON
+        storage.set('foobar', { one: 'two' });
+
+        console.log(storage.get('foobar')); // '{"one":"two"}' (String)
+        console.log(storage.get('foobar', JSON.parse)); // { one: 'two' } (Object)
     });
 ```
 
